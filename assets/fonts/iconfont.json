@@ -1,0 +1,23 @@
+{
+  "id": "",
+  "name": "",
+  "font_family": "iconfont",
+  "css_prefix_text": "icon-",
+  "description": "",
+  "glyphs": [
+    {
+      "icon_id": "35387076",
+      "name": "miku",
+      "font_class": "miku",
+      "unicode": "e601",
+      "unicode_decimal": 58881
+    },
+    {
+      "icon_id": "36868736",
+      "name": "miku",
+      "font_class": "miku1",
+      "unicode": "e683",
+      "unicode_decimal": 59011
+    }
+  ]
+}

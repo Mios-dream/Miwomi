@@ -1,0 +1,10 @@
+^E:\ROBOT_CONTROL\BUILD\WINDOWS\X64\CMAKEFILES\1237C4787423AC5C83404E89F7EF4D50\GENERATE.STAMP.RULE
+setlocal
+"E:\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -SE:/robot_control/windows -BE:/robot_control/build/windows/x64 --check-stamp-list CMakeFiles/generate.stamp.list --vs-solution-file E:/robot_control/build/windows/x64/robot_control.sln
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

@@ -1,0 +1,12 @@
+com.miosdream.robot_control.app-jetified-annotation-experimental-1.1.0-0 C:\Users\三三sama\.gradle\caches\transforms-3\02315cc9f75263553d2042718fc375ee\transformed\jetified-annotation-experimental-1.1.0\res
+com.miosdream.robot_control.app-jetified-window-1.0.0-beta04-1 C:\Users\三三sama\.gradle\caches\transforms-3\076eb9235982ee06112d76594ea8585f\transformed\jetified-window-1.0.0-beta04\res
+com.miosdream.robot_control.app-jetified-window-java-1.0.0-beta04-2 C:\Users\三三sama\.gradle\caches\transforms-3\99750bb863b6fe460a7b5da8686e778d\transformed\jetified-window-java-1.0.0-beta04\res
+com.miosdream.robot_control.app-core-1.6.0-3 C:\Users\三三sama\.gradle\caches\transforms-3\d08c73bfb05384f2e52578171dbd141e\transformed\core-1.6.0\res
+com.miosdream.robot_control.app-debug-4 E:\robot_control\android\app\src\debug\res
+com.miosdream.robot_control.app-main-5 E:\robot_control\android\app\src\main\res
+com.miosdream.robot_control.app-pngs-6 E:\robot_control\build\app\generated\res\pngs\debug
+com.miosdream.robot_control.app-resValues-7 E:\robot_control\build\app\generated\res\resValues\debug
+com.miosdream.robot_control.app-rs-8 E:\robot_control\build\app\generated\res\rs\debug
+com.miosdream.robot_control.app-mergeDebugResources-9 E:\robot_control\build\app\intermediates\incremental\debug\mergeDebugResources\merged.dir
+com.miosdream.robot_control.app-mergeDebugResources-10 E:\robot_control\build\app\intermediates\incremental\debug\mergeDebugResources\stripped.dir
+com.miosdream.robot_control.app-merged_res-11 E:\robot_control\build\app\intermediates\merged_res\debug
