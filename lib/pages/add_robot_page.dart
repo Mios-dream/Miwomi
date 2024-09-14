@@ -1,10 +1,50 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../data/my_app_data.dart';
+import '../widgets/toast.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class AddRobotPage extends StatelessWidget {
   const AddRobotPage({Key? key}) : super(key: key);
 
+  String _formatAddress(String address) {
+    if (address.endsWith('/')) {
+      // 去掉斜杠
+      address = address.substring(0, address.length - 1);
+    }
+
+    return address;
+  }
+
+  Future<Map> getBasicInfo(address) async {
+    Map data = {"user_id": "", "nickname": ""};
+    try {
+      final response = await http
+          .get(Uri.parse("$address/bot_info"))
+          .timeout(const Duration(seconds: 3));
+      if (response.statusCode == 200) {
+        return jsonDecode(utf8.decode(response.bodyBytes));
+      } else {
+        return data;
+      }
+    } catch (_) {
+      // notificationToast(text: e.toString(), level: 3);
+
+      return {"user_id": "", "nickname": ""};
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    MyAppData myAppData = Provider.of<MyAppData>(context);
+    final TextEditingController nameTextEditingController =
+        TextEditingController();
+    final TextEditingController addressTextEditingController =
+        TextEditingController();
+    final TextEditingController tokenTextEditingController =
+        TextEditingController();
+    Map newRobot = {};
     return Scaffold(
         appBar: addRobotBar(context),
         body: Container(
@@ -29,40 +69,28 @@ class AddRobotPage extends StatelessWidget {
                                 margin: const EdgeInsets.fromLTRB(30, 0, 30, 0),
                                 width: double.infinity,
                                 child: TextFormField(
+                                  controller: nameTextEditingController,
+                                  keyboardType: TextInputType.text,
                                   decoration:
                                       const InputDecoration(hintText: "name"),
-                                  validator: (name) {
-                                    if (name == null || name.isEmpty) {
-                                      return 'Please enter some text';
-                                    }
-                                    return '输入';
-                                  },
                                 )),
                             Container(
                                 margin: const EdgeInsets.fromLTRB(30, 0, 30, 0),
                                 width: double.infinity,
                                 child: TextFormField(
+                                  controller: addressTextEditingController,
+                                  keyboardType: TextInputType.text,
                                   decoration: const InputDecoration(
                                       hintText: "address"),
-                                  validator: (name) {
-                                    if (name == null || name.isEmpty) {
-                                      return 'Please enter some text';
-                                    }
-                                    return '输入';
-                                  },
                                 )),
                             Container(
                                 margin: const EdgeInsets.fromLTRB(30, 0, 30, 0),
                                 width: double.infinity,
                                 child: TextFormField(
+                                  controller: tokenTextEditingController,
+                                  keyboardType: TextInputType.text,
                                   decoration:
                                       const InputDecoration(hintText: "token"),
-                                  validator: (name) {
-                                    if (name == null || name.isEmpty) {
-                                      return 'Please enter some text';
-                                    }
-                                    return '输入';
-                                  },
                                 ))
                           ],
                         ),
@@ -104,8 +132,31 @@ class AddRobotPage extends StatelessWidget {
                   ),
                   margin: const EdgeInsets.only(top: 550),
                   child: IconButton(
+
                       // 事件
-                      onPressed: () {},
+                      onPressed: () {
+                        if (nameTextEditingController.text.isNotEmpty &&
+                            addressTextEditingController.text.isNotEmpty &&
+                            tokenTextEditingController.text.isNotEmpty) {
+                          String address =
+                              _formatAddress(addressTextEditingController.text);
+                          getBasicInfo(address).then((Map data) {
+                            newRobot = {
+                              "name": nameTextEditingController.text,
+                              "token": tokenTextEditingController.text,
+                              "address": _formatAddress(address),
+                              "user_id": data["user_id"],
+                              "user_name": data["nickname"],
+                            };
+                            myAppData.addRobot(newRobot);
+                            // notificationToast(
+                            //     text: "添加成功( •̀ ω •́ )✧", level: 2);
+                          });
+                        } else {
+                          notificationToast(
+                              text: "欸？信息还没输入完Σ(っ °Д °;)っ", level: 1);
+                        }
+                      },
                       icon: const Icon(
                         Icons.add,
                         size: 50,

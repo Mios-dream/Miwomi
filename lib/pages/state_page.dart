@@ -1,9 +1,11 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../tools/hex_color_to_colors.dart';
 import '../data/my_app_data.dart';
 import 'package:provider/provider.dart';
 import 'dart:math' as math;
+import 'package:http/http.dart' as http;
 
 class SatePage extends StatelessWidget {
   const SatePage({super.key});
@@ -42,16 +44,19 @@ class StatePageBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    MyAppData myAppData = Provider.of<MyAppData>(context);
     return Container(
       color: const Color(0xFFF1F3F7),
       alignment: Alignment.center,
-      child: ListView(children: const [
-        MainSwitch(),
-        ComputerInfoCard(),
-        RomAndMemoryCard(),
-        RunSateCard(),
-        LogInfoCard(),
-        DetailedCoreInformation(),
+      child: ListView(children: [
+        const MainSwitch(),
+        ComputerInfoCard(
+          address: myAppData.address,
+        ),
+        const RomAndMemoryCard(),
+        const RunSateCard(),
+        const LogInfoCard(),
+        DetailedCoreInformation(address: myAppData.address),
       ]),
     );
   }
@@ -111,8 +116,7 @@ class _MainSwitchState extends State<MainSwitch> {
               inactiveThumbColor: const Color(0xFFFF91AE),
               inactiveTrackColor:
                   myAppData.mainSwitch ? Colors.white : const Color(0xFFF1F1F1),
-              trackOutlineColor:
-                  MaterialStateProperty.resolveWith((Set states) {
+              trackOutlineColor: WidgetStateProperty.resolveWith((Set states) {
                 return Colors.transparent; // Use the default color.
               }),
               value: myAppData.mainSwitch,
@@ -129,15 +133,56 @@ class _MainSwitchState extends State<MainSwitch> {
 }
 
 class ComputerInfoCard extends StatefulWidget {
-  const ComputerInfoCard({super.key});
+  final String address;
+
+  const ComputerInfoCard({super.key, required this.address});
 
   @override
   State<ComputerInfoCard> createState() => _CpuAndMemoryInfoCardState();
 }
 
 class _CpuAndMemoryInfoCardState extends State<ComputerInfoCard> {
-  double cpu = 0.5;
-  double memory = 0.5;
+  double cpu = 0;
+  double memory = 0;
+  double gpu = 0;
+  Map computerUsedInfoData = {"cpu": 0, "memory": 0, "gpu": 0};
+
+  @override
+  void initState() {
+    super.initState();
+    startTimer();
+  }
+
+  Future getHttpRequest(String address) async {
+    final response1 = await http.get(Uri.parse('$address/get_cpu_usage'));
+    final response2 = await http.get(Uri.parse('$address/get_memory_usage'));
+    final response3 =
+        await http.get(Uri.parse('$address/get_nvidia_gpu_utilization'));
+
+    if (response1.statusCode == 200) {
+      Map data = jsonDecode(utf8.decode(response1.bodyBytes));
+      computerUsedInfoData["cpu"] = data["cpu_usage"];
+    }
+    if (response2.statusCode == 200) {
+      Map data = jsonDecode(utf8.decode(response2.bodyBytes));
+      computerUsedInfoData["memory"] = data["memory_usage"];
+    }
+    if (response3.statusCode == 200) {
+      Map data = jsonDecode(utf8.decode(response3.bodyBytes));
+      computerUsedInfoData["gpu"] = data["utilization"];
+    }
+  }
+
+  void startTimer() {
+    Timer.periodic(const Duration(seconds: 3), (timer) {
+      setState(() {
+        getHttpRequest(widget.address);
+        cpu = computerUsedInfoData["cpu"] / 100;
+        memory = computerUsedInfoData["memory"] / 100;
+        gpu = computerUsedInfoData["gpu"] / 100;
+      });
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -162,6 +207,7 @@ class _CpuAndMemoryInfoCardState extends State<ComputerInfoCard> {
                   HexColor.fromHex("#ff9a9e"),
                   HexColor.fromHex("#fecfef"),
                 ],
+                value: cpu,
               ),
             ),
             Expanded(
@@ -172,6 +218,7 @@ class _CpuAndMemoryInfoCardState extends State<ComputerInfoCard> {
                     HexColor.fromHex("#ff9a9e"),
                     HexColor.fromHex("#fecfef"),
                   ],
+                  value: memory,
                 )),
             Expanded(
                 flex: 1,
@@ -181,6 +228,7 @@ class _CpuAndMemoryInfoCardState extends State<ComputerInfoCard> {
                     HexColor.fromHex("#ff9a9e"),
                     HexColor.fromHex("#fecfef"),
                   ],
+                  value: gpu,
                 ))
           ],
         ),
@@ -192,20 +240,16 @@ class _CpuAndMemoryInfoCardState extends State<ComputerInfoCard> {
 class BaseComputerInfoIndicator extends StatefulWidget {
   final String name;
   final List<Color> colors;
+  final double value;
 
-  const BaseComputerInfoIndicator({
-    super.key,
-    required this.name,
-    required this.colors,
-  });
+  const BaseComputerInfoIndicator(
+      {super.key, required this.name, required this.colors, this.value = 0.5});
 
   @override
   State<BaseComputerInfoIndicator> createState() => _BaseInfoState();
 }
 
 class _BaseInfoState extends State<BaseComputerInfoIndicator> {
-  double cpu = 100;
-
   @override
   Widget build(BuildContext context) {
     return Column(children: [
@@ -215,20 +259,13 @@ class _BaseInfoState extends State<BaseComputerInfoIndicator> {
         height: 120,
         child: CircularProgressBar(
           name: widget.name,
-          value: cpu,
+          value: widget.value,
           colors: [
             HexColor.fromHex("#ff9a9e"),
             HexColor.fromHex("#fecfef"),
           ],
         ),
       ),
-      TextButton(
-          onPressed: () {
-            setState(() {
-              cpu = math.Random().nextDouble();
-            });
-          },
-          child: const Text("测试")),
     ]);
   }
 }
@@ -395,6 +432,7 @@ class _CircularGradientPainter extends CustomPainter {
 class RomAndMemoryCard extends StatelessWidget {
   const RomAndMemoryCard({super.key});
 
+  final int usedRom = 500;
   final double usedDisk = 0.7;
 
   @override
@@ -481,9 +519,9 @@ class RomAndMemoryCard extends StatelessWidget {
                                       height: 40,
                                       child: Stack(
                                         children: [
-                                          const Text(
-                                            "400",
-                                            style: TextStyle(
+                                          Text(
+                                            "$usedRom",
+                                            style: const TextStyle(
                                               fontSize: 30,
                                               fontWeight: FontWeight.bold,
                                             ),
@@ -782,6 +820,11 @@ class LogInfoCard extends StatefulWidget {
 }
 
 class _LogInfoCardState extends State<LogInfoCard> {
+  int error = 0;
+  int warning = 0;
+  int info = 20;
+  int debug = 10;
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -826,19 +869,19 @@ class _LogInfoCardState extends State<LogInfoCard> {
                     mainAxisSpacing: 2.0, //
                     childAspectRatio: 2.8,
                     crossAxisCount: 2,
-                    children: const [
+                    children: [
                       LogLevel(
                         color: Colors.red,
                         text: "错误",
-                        number: 0,
+                        number: error,
                       ),
                       LogLevel(
                         color: Colors.yellow,
                         text: "警告",
-                        number: 10,
+                        number: warning,
                       ),
-                      LogLevel(color: Colors.green, text: "信息", number: 100),
-                      LogLevel(color: Colors.blue, text: "调试", number: 10),
+                      LogLevel(color: Colors.green, text: "信息", number: info),
+                      LogLevel(color: Colors.blue, text: "调试", number: debug),
                     ],
                   )))
         ],
@@ -900,11 +943,43 @@ class LogLevel extends StatelessWidget {
   }
 }
 
-class DetailedCoreInformation extends StatelessWidget {
-  const DetailedCoreInformation({super.key});
+class DetailedCoreInformation extends StatefulWidget {
+  final String address;
+
+  const DetailedCoreInformation({super.key, required this.address});
+
+  @override
+  State<DetailedCoreInformation> createState() =>
+      _DetailedCoreInformationState();
+}
+
+class _DetailedCoreInformationState extends State<DetailedCoreInformation> {
+  Map computerInfoData = {};
+
+  @override
+  void initState() {
+    super.initState();
+    getHttpRequest(widget.address);
+  }
+
+  Future getHttpRequest(String address) async {
+    final response1 = await http.get(Uri.parse('$address/get_system'));
+
+    if (response1.statusCode == 200) {
+      computerInfoData = jsonDecode(utf8.decode(response1.bodyBytes));
+    }
+    setState(() {});
+  }
 
   @override
   Widget build(BuildContext context) {
+    String system = computerInfoData["system_name"] ?? "未获取到系统信息";
+    String gpu = computerInfoData["gpu_name"] ?? "未获取到显卡信息";
+    String cpu = computerInfoData["cpu_model"] ?? "未获取到CPU信息";
+    String ram = computerInfoData["system_memory"] != null
+        ? "${computerInfoData["system_memory"]}GB"
+        : "未获取到内存信息";
+    String storage = "1TB SSD";
     return Container(
       margin: const EdgeInsets.all(20),
       width: double.infinity,
@@ -929,13 +1004,13 @@ class DetailedCoreInformation extends StatelessWidget {
               "操作系统",
               style: TextStyle(fontSize: 18, color: Colors.grey),
             ),
-            const Expanded(
+            Expanded(
                 child: Padding(
-              padding: EdgeInsets.only(left: 20),
+              padding: const EdgeInsets.only(left: 20),
               child: Text(
-                "Windows11",
+                system,
                 // overflow: TextOverflow.ellipsis,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 25,
                 ),
               ),
@@ -955,13 +1030,13 @@ class DetailedCoreInformation extends StatelessWidget {
               "显卡",
               style: TextStyle(fontSize: 18, color: Colors.grey),
             ),
-            const Expanded(
+            Expanded(
                 child: Padding(
-              padding: EdgeInsets.only(left: 60),
+              padding: const EdgeInsets.only(left: 60),
               child: Text(
-                "NVIDIA GeForce RTX 4060 Laptop GPU",
+                gpu,
                 // overflow: TextOverflow.ellipsis,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 25,
                 ),
               ),
@@ -981,13 +1056,13 @@ class DetailedCoreInformation extends StatelessWidget {
               "处理器",
               style: TextStyle(fontSize: 18, color: Colors.grey),
             ),
-            const Expanded(
+            Expanded(
                 child: Padding(
-              padding: EdgeInsets.only(left: 40),
+              padding: const EdgeInsets.only(left: 40),
               child: Text(
-                "AMD Ryzen 7 7735H with Radeon Graphics",
+                cpu,
                 // overflow: TextOverflow.ellipsis,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 25,
                 ),
               ),
@@ -1008,11 +1083,11 @@ class DetailedCoreInformation extends StatelessWidget {
               style: TextStyle(fontSize: 18, color: Colors.grey),
             ),
             Container(
-              width: 100,
+              // width: 100,
               padding: const EdgeInsets.only(left: 20),
-              child: const Text(
-                "32GB",
-                style: TextStyle(
+              child: Text(
+                ram,
+                style: const TextStyle(
                   fontSize: 25,
                 ),
               ),
@@ -1032,13 +1107,13 @@ class DetailedCoreInformation extends StatelessWidget {
               "磁盘储存",
               style: TextStyle(fontSize: 18, color: Colors.grey),
             ),
-            const Expanded(
+            Expanded(
                 child: Padding(
-              padding: EdgeInsets.only(left: 20),
+              padding: const EdgeInsets.only(left: 20),
               child: Text(
-                "512GB",
+                storage,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 25,
                 ),
               ),

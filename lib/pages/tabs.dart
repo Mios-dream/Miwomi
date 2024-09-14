@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'add_robot_page.dart';
 import 'home_page.dart';
+import 'package:provider/provider.dart';
+import '../data/my_app_data.dart';
 
 // 底部导航栏
 class Tabs extends StatefulWidget {
@@ -17,56 +19,61 @@ class _Tabs extends State<Tabs> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Stack(
-        children: [
-          pageList[select],
-          Align(
-            alignment: Alignment.bottomCenter,
-            child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Stack(children: [
-                  Container(
-                    width: double.infinity,
-                    height: 57,
-                    decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(50),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Colors.black12,
-                            blurRadius: 12,
-                            spreadRadius: 18,
-                          )
-                        ]),
-                  ),
-                  ClipRRect(
-                      borderRadius:
-                          const BorderRadius.all(Radius.circular(50.0)),
-                      child: BottomNavigationBar(
-                          showSelectedLabels: false,
-                          showUnselectedLabels: false,
-                          elevation: 0,
-                          backgroundColor: Colors.transparent,
-                          currentIndex: select,
-                          onTap: (index) {
-                            setState(() {
-                              select = index;
-                            });
-                          },
-                          items: const [
-                            BottomNavigationBarItem(
-                                icon: Icon(Icons.home), label: "首页"),
-                            BottomNavigationBarItem(
-                                icon: Icon(Icons.person), label: "我的")
-                          ]))
-                ])),
+    MyAppData myAppData = Provider.of<MyAppData>(context);
+    // 初始化时判断是否为空，否者进入机器人添加界面
+    return myAppData.robots.isNotEmpty
+        ? Scaffold(
+            body: Stack(
+              children: [
+                pageList[select],
+                Align(
+                  alignment: Alignment.bottomCenter,
+                  child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Stack(children: [
+                        Container(
+                          width: double.infinity,
+                          height: 57,
+                          decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(50),
+                              boxShadow: const [
+                                BoxShadow(
+                                  color: Colors.black12,
+                                  blurRadius: 15,
+                                  spreadRadius: 5,
+                                )
+                              ]),
+                        ),
+                        ClipRRect(
+                            borderRadius:
+                                const BorderRadius.all(Radius.circular(50.0)),
+                            child: BottomNavigationBar(
+                                showSelectedLabels: false,
+                                showUnselectedLabels: false,
+                                elevation: 0,
+                                backgroundColor: Colors.transparent,
+                                currentIndex: select,
+                                onTap: (index) {
+                                  setState(() {
+                                    select = index;
+                                  });
+                                },
+                                items: const [
+                                  BottomNavigationBarItem(
+                                      icon: Icon(Icons.home), label: "首页"),
+                                  BottomNavigationBarItem(
+                                      icon: Icon(Icons.person), label: "我的")
+                                ]))
+                      ])),
+                )
+              ],
+            ),
+            floatingActionButton: const AddRobotButton(),
+            floatingActionButtonLocation:
+                FloatingActionButtonLocation.centerDocked,
           )
-        ],
-      ),
-      floatingActionButton: const AddRobotButton(),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-    );
+        : const AddRobotPage();
   }
 }
 

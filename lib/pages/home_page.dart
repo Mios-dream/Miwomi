@@ -1,28 +1,13 @@
 import 'package:flutter/material.dart';
 import 'dart:ui' as ui;
 import 'package:provider/provider.dart';
+import '../widgets/toast.dart';
 import '../data/my_app_data.dart';
 import 'state_page.dart' as state_page;
 import 'plugin_page.dart' as plugin_page;
 import 'group_control_page.dart' as group_control_page;
 import 'dart:math';
-
-class MyRobotList {
-  static List<Widget> robotCards = [
-    const BaseRobotCard(
-      image: AssetImage("assets/images/Elysia.jpg"),
-      name: "爱莉希雅",
-      uid: "123342536",
-      index: 0,
-    ),
-    const BaseRobotCard(
-      image: AssetImage("assets/images/Elysia.jpg"),
-      name: "Elysia",
-      uid: "123342536",
-      index: 1,
-    ),
-  ];
-}
+import 'package:http/http.dart' as http;
 
 // 首页主体框架
 class HomePage extends StatefulWidget {
@@ -35,6 +20,7 @@ class HomePage extends StatefulWidget {
 class _HomePage extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
+    MyAppData myAppData = Provider.of<MyAppData>(context);
     return Scaffold(
         appBar: AppBar(
           surfaceTintColor: const Color(0xFFF1F3F7),
@@ -67,47 +53,123 @@ class _HomePage extends State<HomePage> {
                             width: 300,
                             height: 400,
                             child: ListView.builder(
-                                itemCount: MyRobotList.robotCards.length,
+                                itemCount: myAppData.robots.length,
                                 itemBuilder: (context, index) {
-                                  return MyRobotList.robotCards[index];
+                                  // 滑动删除
+                                  return Dismissible(
+                                    key: ValueKey(myAppData.robots[index]),
+                                    direction: DismissDirection.endToStart,
+                                    onDismissed: (direction) {
+                                      setState(() {
+                                        if (index ==
+                                            myAppData.selectedCardIndex) {
+                                          myAppData.selectCard(0);
+                                        }
+                                        myAppData.removeRobot(index);
+                                      });
+                                    },
+                                    background: Container(
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFFE9AC1),
+                                        borderRadius: BorderRadius.circular(20),
+                                      ),
+                                      child: const Icon(Icons.delete),
+                                    ),
+                                    child: BaseRobotCard(
+                                      index: index,
+                                      robotInfo: myAppData.robots[index],
+                                    ),
+                                  );
                                 }),
                           ));
                     });
               },
               icon: const Icon(Icons.view_list_rounded)),
         ),
-        body: Container(
-            // 撑满整个屏幕
-            width: double.infinity,
-            decoration: const BoxDecoration(
-                // color: Color.fromRGBO(245, 245, 245, 100),
-                color: Color(0xFFF1F3F7)),
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: const HomeMainList()));
+        body: myAppData.isAvailable
+            ? Container(
+                // 撑满整个屏幕
+                width: double.infinity,
+                decoration: const BoxDecoration(
+                    // color: Color.fromRGBO(245, 245, 245, 100),
+                    color: Color(0xFFF1F3F7)),
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: const HomeMainList())
+            : Container(
+                width: double.infinity,
+                height: double.infinity,
+                alignment: Alignment.center,
+                decoration: const BoxDecoration(color: Color(0xFFF1F3F7)),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // const Text(
+                    //   "OωO",
+                    //   style: TextStyle(
+                    //     fontSize: 30,
+                    //   ),
+                    // ),
+                    Container(
+                        width: 200,
+                        height: 200,
+                        decoration: const BoxDecoration(
+                          image: DecorationImage(
+                            image: AssetImage("assets/images/error.png"),
+                          ),
+                        )),
+                    const Text(
+                      "当前机器人好像不可用",
+                      style: TextStyle(
+                          color: Colors.black54,
+                          fontSize: 25,
+                          fontFamily: "Sweet"),
+                    ),
+                    Container(
+                      width: 130,
+                      height: 50,
+                      margin: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                          color: const Color(0xFFFB9BB5),
+                          borderRadius: BorderRadius.circular(50),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Color(0xFFFB9BB5),
+                              spreadRadius: 0,
+                              blurRadius: 10,
+                            )
+                          ]),
+                      child: TextButton(
+                        onPressed: () {
+                          setState(() {
+                            myAppData.checkAvailable();
+                          });
+                        },
+                        child: const Text(
+                          "点击重连",
+                          style: TextStyle(
+                              fontFamily: "Sweet", color: Colors.white),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(
+                      height: 50,
+                    )
+                  ],
+                ),
+              ));
   }
 }
 
 //基础机器人列表卡片
 class BaseRobotCard extends StatefulWidget {
-  final ImageProvider image;
-  final bool isRunning; // 是否正在运行
-  final bool isOnline; // 是否在线
-  final bool isSelected; // 是否被选中
-  final String name;
-  final String uid; // QQ号
-  final int level; // 等级
+  final Map robotInfo; // 机器人信息
+
   final int index; //索引
 
   const BaseRobotCard({
     super.key,
-    required this.image,
-    required this.name,
-    required this.uid,
     required this.index,
-    this.isRunning = true,
-    this.isOnline = true,
-    this.isSelected = false,
-    this.level = 0,
+    required this.robotInfo,
   });
 
   @override
@@ -115,24 +177,16 @@ class BaseRobotCard extends StatefulWidget {
 }
 
 class _BaseRobotCardState extends State<BaseRobotCard> {
-  late ImageProvider image;
-  late bool isRunning; // 是否正在运行
-  late bool isOnline; // 是否在线
+  late bool isOnline = false; // 是否在线
   late bool isSelected; // 是否被选中
-  late String name;
-  late String uid; // QQ号
-  late int level; // 等级
+  int level = 0; // 等级
+  bool isRunning = true; // 是否正在运行
 
   @override
   void initState() {
-    image = widget.image;
-    isRunning = widget.isRunning;
-    isOnline = widget.isOnline;
-    isSelected = widget.isSelected;
-    name = widget.name;
-    uid = widget.uid;
-    level = widget.level;
     super.initState();
+
+    available(widget.robotInfo["address"]);
   }
 
   Widget _showSelected() {
@@ -158,36 +212,40 @@ class _BaseRobotCardState extends State<BaseRobotCard> {
     }
   }
 
+  Future<bool> available(String address) async {
+    try {
+      final response = await http
+          .get(Uri.parse("$address/bot_info"))
+          .timeout(const Duration(seconds: 3));
+
+      if (response.statusCode == 200) {
+        isOnline = true;
+      }
+    } catch (_) {}
+
+    setState(() {});
+
+    return isOnline;
+  }
+
   @override
   Widget build(BuildContext context) {
     MyAppData myAppData = Provider.of<MyAppData>(context);
+
     isSelected = myAppData.selectedCardIndex == widget.index;
     return GestureDetector(
         onTap: () {
-          myAppData.selectCard(widget.index);
-
-          // 在这里添加你的逻辑，比如导航到另一个页面
-        },
-        onLongPressStart: (LongPressStartDetails details) {
-          final size = MediaQuery.of(context).size;
-          final paddingDx = size.width - details.globalPosition.dx;
-          final paddingDy = size.height - details.globalPosition.dy;
-          //更多操作
-          showMenu(
-              surfaceTintColor: Colors.white,
-              context: context,
-              position: RelativeRect.fromLTRB(
-                details.globalPosition.dx,
-                details.globalPosition.dy,
-                paddingDx,
-                paddingDy,
-              ),
-              items: [
-                const PopupMenuItem(
-                  value: 1,
-                  child: Text('删除'),
-                ),
-              ]);
+          if (isSelected) {
+            return;
+          }
+          // 此处发送一个请求，判断机器人是否可用
+          available(myAppData.robots[widget.index]["address"]).then((value) {
+            if (value) {
+              myAppData.selectCard(widget.index);
+            } else {
+              notificationToast(text: '机器人不可用，地址错误或链接超时', level: 3);
+            }
+          });
         },
         child: Stack(children: [
           Card(
@@ -208,7 +266,9 @@ class _BaseRobotCardState extends State<BaseRobotCard> {
                                       : Colors.grey,
                                   width: 2),
                               image: DecorationImage(
-                                  image: image, fit: BoxFit.cover),
+                                  image: NetworkImage(
+                                      "https://q1.qlogo.cn/g?b=qq&nk=${widget.robotInfo["user_id"]}&s=5"),
+                                  fit: BoxFit.cover),
                               borderRadius: BorderRadius.circular(10),
                             )),
                         const SizedBox(
@@ -219,7 +279,7 @@ class _BaseRobotCardState extends State<BaseRobotCard> {
                           children: [
                             Row(
                               children: [
-                                Text(name),
+                                Text(widget.robotInfo["name"]),
                                 const SizedBox(
                                   width: 10,
                                 ),
@@ -231,8 +291,9 @@ class _BaseRobotCardState extends State<BaseRobotCard> {
                                 ),
                               ],
                             ),
-                            Text("uid:$uid",
-                                style: const TextStyle(color: Colors.grey))
+                            Text("uid:${widget.robotInfo["user_id"]}",
+                                style: const TextStyle(color: Colors.grey)),
+                            const SizedBox(height: 15),
                           ],
                         )
                       ])))),
@@ -248,6 +309,30 @@ class _BaseRobotCardState extends State<BaseRobotCard> {
                     color: Color(0xFFF784A7),
                   ),
                 )),
+          ),
+          Container(
+            margin: const EdgeInsets.only(top: 65, left: 90, right: 35),
+            width: double.infinity,
+            height: 10,
+            decoration: const BoxDecoration(
+                borderRadius: BorderRadius.all(
+                  Radius.circular(10),
+                ),
+                color: Color(0xFFF7C5D6)),
+          ),
+          Align(
+            alignment: Alignment.bottomRight,
+            child: Container(
+              margin: const EdgeInsets.only(top: 65, right: 20),
+              width: 10,
+              height: 10,
+              decoration: BoxDecoration(
+                  borderRadius: const BorderRadius.all(
+                    Radius.circular(10),
+                  ),
+                  color:
+                      isOnline ? Colors.greenAccent : const Color(0xFFFC83AF)),
+            ),
           )
         ]));
   }
@@ -259,27 +344,28 @@ class HomeMainList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final today = DateTime.now();
     return ListView(
-      children: const [
-        Text(
+      children: [
+        const Text(
           "你好，阁下！",
           style: TextStyle(
               fontFamily: 'Sweet', fontSize: 30, fontWeight: FontWeight.bold),
         ),
         Text(
-          "2024年8月2日",
-          style: TextStyle(
+          '${today.year}年${today.month}月${today.day}日',
+          style: const TextStyle(
               fontFamily: 'Sweet',
               fontSize: 15,
               fontWeight: FontWeight.bold,
               color: Color(0xFFFFC4D7)),
         ),
-        RobotInfo(),
-        WeatherInfoCard(),
-        SizedBox(
+        const RobotInfo(),
+        const WeatherInfoCard(),
+        const SizedBox(
           height: 10,
         ),
-        FunctionInfoList()
+        const FunctionInfoList()
       ],
     );
   }
@@ -337,8 +423,11 @@ class _RobotInfoState extends State<RobotInfo> {
 
   @override
   Widget build(BuildContext context) {
+    MyAppData myAppData = Provider.of<MyAppData>(context);
+    String name = myAppData.userName;
     return Card(
       elevation: 20,
+      color: Colors.white,
       surfaceTintColor: Colors.white,
       shadowColor: const Color(0xFFFFC4D7),
       child: Row(
@@ -349,8 +438,10 @@ class _RobotInfoState extends State<RobotInfo> {
             height: 160,
             margin: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              image: const DecorationImage(
-                  image: AssetImage("assets/images/Elysia.jpg"),
+              image: DecorationImage(
+                  // image: AssetImage("assets/images/Elysia.jpg"),
+                  image: NetworkImage(
+                      "http://q1.qlogo.cn/g?b=qq&nk=${myAppData.userId}&s=5"),
                   fit: BoxFit.cover),
               borderRadius: BorderRadius.circular(20), //设置盒子的圆角
             ),
@@ -358,9 +449,9 @@ class _RobotInfoState extends State<RobotInfo> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                "爱莉希雅",
-                style: TextStyle(fontFamily: 'Sweet', fontSize: 25),
+              Text(
+                name,
+                style: const TextStyle(fontFamily: 'Sweet', fontSize: 30),
               ),
               const Text(
                 "Lv6",
@@ -372,11 +463,11 @@ class _RobotInfoState extends State<RobotInfo> {
               ),
               SizedBox(
                 height: 10,
-                width: MediaQuery.of(context).size.width / 2 - 50,
+                width: MediaQuery.of(context).size.width - 220,
                 child: const Divider(thickness: 2),
               ),
               SizedBox(
-                  width: MediaQuery.of(context).size.width / 2 - 20,
+                  width: MediaQuery.of(context).size.width - 200,
                   child: Wrap(
                     children: getTips(),
                   )),
@@ -397,10 +488,56 @@ class WeatherInfoCard extends StatefulWidget {
 }
 
 class _WeatherInfoCardState extends State<WeatherInfoCard> {
+  String getDays() {
+    // 获取当前日期
+    final today = DateTime.now();
+
+    // 获取星期几
+    final weekdayIndex = today.weekday;
+
+    // 星期几的中文表示
+    final weekdays = ['星期一', '星期二', '星期三', '星期四', '星期五', '星期六', '星期日'];
+
+    // 计算当前是星期几
+    final currentWeekday = weekdays[weekdayIndex - 1];
+    return "${today.year}年 ${today.month}月${today.day}日 $currentWeekday";
+  }
+
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
     final width = size.width;
+    final MyAppData myAppData = Provider.of<MyAppData>(context);
+    bool isWeatherEnable = myAppData.isWeatherEnable;
+    String weatherCode =
+        "${myAppData.weatherNowDay["code"]}${myAppData.weather3Day["code"]}";
+    String weather = weatherCode != "11" &&
+            myAppData.weatherNowDay["now"] != null
+        ? "今天·${myAppData.weatherNowDay["now"]["temp"]}℃·${myAppData.weatherNowDay["now"]["text"]}"
+        : "天气获取失败";
+    List? weather3Days = weatherCode != "11" &&
+            myAppData.weather3Day["daily"] != null
+        ? [myAppData.weather3Day["daily"][1], myAppData.weather3Day["daily"][2]]
+        : null;
+
+    int tomorrowTemperature = weather3Days != null
+        ? (int.parse(weather3Days[0]["tempMax"]) +
+                int.parse(weather3Days[0]["tempMin"])) ~/
+            2
+        : 0;
+    int afterTomorrowTemperature = weather3Days != null
+        ? (int.parse(weather3Days[1]["tempMax"]) +
+                int.parse(weather3Days[1]["tempMin"])) ~/
+            2
+        : 0;
+    if (weatherCode == "11") {
+      if (isWeatherEnable) {
+        isWeatherEnable = false;
+        myAppData.setWeatherEnable(isWeatherEnable);
+      }
+      notificationToast(text: myAppData.weatherNowDay["msg"], level: 3);
+    }
+
     return Card(
         elevation: 5,
         surfaceTintColor: Colors.white,
@@ -417,86 +554,171 @@ class _WeatherInfoCardState extends State<WeatherInfoCard> {
                   fit: BoxFit.cover),
               borderRadius: BorderRadius.circular(20), //设置盒子的圆角
             ),
-            child: SizedBox(
-                height: 90,
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
-                  child: BackdropFilter(
-                    filter: ui.ImageFilter.blur(sigmaX: 2, sigmaY: 2),
-                    child: Row(
-                      children: [
-                        Container(
-                            width: 90,
-                            margin: const EdgeInsets.all(5),
-                            decoration: BoxDecoration(
-                              border: Border.all(
-                                color: Colors.white, // 边框颜色
-                                width: 2.0, // 边框宽度
-                              ),
-                              image: const DecorationImage(
-                                  image: AssetImage("assets/images/mio.jpg"),
-                                  fit: BoxFit.cover),
-                              borderRadius: BorderRadius.circular(20), //设置盒子的圆角
-                            )),
-                        const SizedBox(
-                          width: 10,
+            child: Stack(
+              children: [
+                SizedBox(
+                    height: 100,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: BackdropFilter(
+                        filter: ui.ImageFilter.blur(sigmaX: 2, sigmaY: 2),
+                        child: Row(
+                          children: [
+                            Container(
+                                width: 90,
+                                margin: const EdgeInsets.all(5),
+                                decoration: BoxDecoration(
+                                  border: Border.all(
+                                    color: Colors.white, // 边框颜色
+                                    width: 2.0, // 边框宽度
+                                  ),
+                                  image: const DecorationImage(
+                                      image:
+                                          AssetImage("assets/images/mio.jpg"),
+                                      fit: BoxFit.cover),
+                                  borderRadius:
+                                      BorderRadius.circular(20), //设置盒子的圆角
+                                )),
+                            const SizedBox(
+                              width: 10,
+                            ),
+                            Expanded(
+                                child: Center(
+                                    child: Padding(
+                                        padding: width > 400
+                                            ? const EdgeInsets.only(right: 20)
+                                            : const EdgeInsets.fromLTRB(
+                                                0, 10, 20, 0),
+                                        child: Column(
+                                          children: [
+                                            Text(
+                                              weather,
+                                              style: TextStyle(
+                                                fontSize: width > 400 ? 25 : 18,
+                                              ),
+                                            ),
+                                            const SizedBox(
+                                              height: 15,
+                                            ),
+                                            Text(
+                                              getDays(),
+                                              style: const TextStyle(
+                                                  fontFamily: 'Sweet',
+                                                  fontSize: 13,
+                                                  color: Colors.black54),
+                                            ),
+                                            Container(
+                                              height: 18,
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      horizontal: 20),
+                                              decoration: BoxDecoration(
+                                                  borderRadius:
+                                                      BorderRadius.circular(20),
+                                                  color:
+                                                      const Color(0xFF888888)),
+                                              child: Row(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment
+                                                        .spaceBetween,
+                                                children: [
+                                                  Text(
+                                                      "明天 $tomorrowTemperature℃",
+                                                      style: const TextStyle(
+                                                          fontFamily: 'Sweet',
+                                                          fontSize: 8,
+                                                          color: Colors.white)),
+                                                  Text(
+                                                      "后天 $afterTomorrowTemperature℃",
+                                                      style: const TextStyle(
+                                                          fontFamily: 'Sweet',
+                                                          fontSize: 8,
+                                                          color: Colors.white)),
+                                                ],
+                                              ),
+                                            ),
+                                          ],
+                                        ))))
+                          ],
                         ),
-                        Expanded(
-                            child: Center(
-                                child: Padding(
-                                    padding: width > 400
-                                        ? const EdgeInsets.only(right: 20)
-                                        : const EdgeInsets.fromLTRB(
-                                            0, 10, 20, 0),
-                                    child: Column(
+                      ),
+                    )),
+                isWeatherEnable
+                    ? Container()
+                    : GestureDetector(
+                        onTap: () {
+                          isWeatherEnable = true;
+                          myAppData.setWeatherEnable(isWeatherEnable);
+                          myAppData.updateWeather();
+                        },
+                        child: Container(
+                            padding: const EdgeInsets.all(20),
+                            width: double.infinity,
+                            height: double.infinity,
+                            decoration: const BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.all(
+                                  Radius.circular(10),
+                                )),
+                            child: Stack(
+                              children: [
+                                const Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisAlignment: MainAxisAlignment.start,
+                                  children: [
+                                    Icon(
+                                      Icons.cloud_outlined,
+                                      size: 55,
+                                      color: Color(0xFFFFC4D7),
+                                    ),
+                                    SizedBox(
+                                      width: 10,
+                                    ),
+                                    Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          "今天·34℃·多云",
-                                          style: TextStyle(
-                                            fontSize: width > 400 ? 25 : 18,
-                                          ),
-                                        ),
-                                        const SizedBox(
-                                          height: 15,
-                                        ),
-                                        const Text(
-                                          "2024年 8月2日 星期四",
+                                          "天气卡片",
                                           style: TextStyle(
                                               fontFamily: 'Sweet',
-                                              fontSize: 13,
-                                              color: Colors.black54),
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 20,
+                                              color: Color(0xFFFBBDCF)),
                                         ),
-                                        Container(
-                                          height: 18,
-                                          padding: const EdgeInsets.symmetric(
-                                              horizontal: 20),
-                                          decoration: BoxDecoration(
-                                              borderRadius:
-                                                  BorderRadius.circular(20),
-                                              color: const Color(0xFF888888)),
-                                          child: const Row(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.spaceBetween,
-                                            children: [
-                                              Text("明天 34℃",
-                                                  style: TextStyle(
-                                                      fontFamily: 'Sweet',
-                                                      fontSize: 8,
-                                                      color: Colors.white)),
-                                              Text("后天 36℃",
-                                                  style: TextStyle(
-                                                      fontFamily: 'Sweet',
-                                                      fontSize: 8,
-                                                      color: Colors.white)),
-                                            ],
-                                          ),
-                                        ),
+                                        Text(
+                                          "点击开启后可查看未来天气",
+                                          style: TextStyle(
+                                              fontFamily: 'Sweet',
+                                              fontSize: 15,
+                                              color: Color(0xFFFFC4D7)),
+                                        )
                                       ],
-                                    ))))
-                      ],
-                    ),
-                  ),
-                ))));
+                                    )
+                                  ],
+                                ),
+                                Align(
+                                    alignment: Alignment.centerRight,
+                                    child: Container(
+                                      height: 35,
+                                      width: 35,
+                                      decoration: const BoxDecoration(
+                                        color: Color(0xFFFEEDF0),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: IconButton(
+                                        icon: const Icon(
+                                          Icons.chevron_right,
+                                          size: 20,
+                                        ),
+                                        color: const Color(0xFFFF91AF),
+                                        onPressed: () {},
+                                      ),
+                                    ))
+                              ],
+                            )))
+              ],
+            )));
   }
 }
 
@@ -659,7 +881,7 @@ class _BasicFunctionCardState extends State<BasicFunctionCard> {
                                       ? Colors.white
                                       : const Color(0xFFF1F1F1),
                                   trackOutlineColor:
-                                      MaterialStateProperty.resolveWith(
+                                      WidgetStateProperty.resolveWith(
                                           (Set states) {
                                     return Colors
                                         .transparent; // Use the default color.

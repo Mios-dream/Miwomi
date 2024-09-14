@@ -1,4 +1,4 @@
-name: robot_control
+name: miowomi
 description: "澪的机器人控制台"
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
@@ -34,6 +34,17 @@ dependencies:
   provider: ^6.1.2
   #  图表库
   fl_chart: ^0.68.0
+  #  网络请求库
+  web_socket_channel: ^3.0.1
+  http: ^1.2.2
+  #  存储库
+  shared_preferences: ^2.3.2
+  #  显示简短通知
+  oktoast: ^3.4.0
+  #  加密库
+  encrypt: ^5.0.3
+  #  地理位置库
+  geolocator: ^13.0.1
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
@@ -65,6 +76,8 @@ flutter:
   assets:
     - assets/images/Elysia.jpg
     - assets/images/mio.jpg
+    - assets/images/logo.png
+    - assets/images/error.png
 
 
   # An image asset can refer to one or more resolution-specific "variants", see

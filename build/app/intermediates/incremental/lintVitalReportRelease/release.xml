@@ -1,12 +1,12 @@
 <variant
     name="release"
-    package="com.miosdream.robot_control"
-    minSdkVersion="19"
-    targetSdkVersion="33"
+    package="com.miosdream.robbot_control"
+    minSdkVersion="21"
+    targetSdkVersion="34"
     shrinking="true"
     mergedManifest="E:\robot_control\build\app\intermediates\merged_manifest\release\AndroidManifest.xml"
     manifestMergeReport="E:\robot_control\build\app\outputs\logs\manifest-merger-release-report.txt"
-    proguardFiles="E:\robot_control\build\app\intermediates\default_proguard_files\global\proguard-android.txt-7.3.0;E:\Android_studio\flutter\flutter\packages\flutter_tools\gradle\flutter_proguard_rules.pro;proguard-rules.pro"
+    proguardFiles="E:\robot_control\build\app\intermediates\default_proguard_files\global\proguard-android.txt-7.3.0;D:\flutter\flutter\packages\flutter_tools\gradle\flutter_proguard_rules.pro;proguard-rules.pro"
     partialResultsDir="E:\robot_control\build\app\intermediates\lint_vital_partial_results\release\out">
   <buildFeatures
       namespacing="REQUIRED"/>
@@ -33,7 +33,7 @@
   </manifestPlaceholders>
   <mainArtifact
       classOutputs="E:\robot_control\build\app\intermediates\javac\release\classes;E:\robot_control\build\app\tmp\kotlin-classes\release;E:\robot_control\build\app\kotlinToolingMetadata;E:\robot_control\build\app\intermediates\compile_and_runtime_not_namespaced_r_class_jar\release\R.jar"
-      applicationId="com.miosdream.robot_control"
+      applicationId="com.miosdream.robbot_control"
       generatedSourceFolders="E:\robot_control\build\app\generated\ap_generated_sources\release\out;E:\robot_control\build\app\generated\aidl_source_output_dir\release\out;E:\robot_control\build\app\generated\source\buildConfig\release;E:\robot_control\build\app\generated\renderscript_source_output_dir\release\out"
       generatedResourceFolders="E:\robot_control\build\app\generated\res\rs\release;E:\robot_control\build\app\generated\res\resValues\release">
   </mainArtifact>

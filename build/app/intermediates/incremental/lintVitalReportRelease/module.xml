@@ -6,9 +6,9 @@
     maven="android:app:"
     gradle="7.3.0"
     buildFolder="E:\robot_control\build\app"
-    bootClassPath="E:\androidSDK\platforms\android-33\android.jar;E:\androidSDK\build-tools\30.0.3\core-lambda-stubs.jar"
+    bootClassPath="E:\androidSDK\platforms\android-34\android.jar;E:\androidSDK\build-tools\30.0.3\core-lambda-stubs.jar"
     javaSourceLevel="1.8"
-    compileTarget="android-33">
+    compileTarget="android-34">
   <lintOptions
       abortOnError="true"
       absolutePaths="true"

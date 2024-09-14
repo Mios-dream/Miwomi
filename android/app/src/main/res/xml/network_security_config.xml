@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-policy>
+    <base-config cleartextTrafficPermitted="true">
+        <!-- 允许明文流量 -->
+    </base-config>
+</network-security-policy>

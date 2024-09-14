@@ -101,8 +101,7 @@ class _PluginPageBodyState extends State<PluginPageBody> {
                       });
                     },
                     style: ButtonStyle(
-                      overlayColor:
-                          MaterialStateProperty.all(Colors.transparent),
+                      overlayColor: WidgetStateProperty.all(Colors.transparent),
                       // 禁用点击高亮
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       // 减少点击区域
@@ -123,8 +122,7 @@ class _PluginPageBodyState extends State<PluginPageBody> {
                       });
                     },
                     style: ButtonStyle(
-                      overlayColor:
-                          MaterialStateProperty.all(Colors.transparent),
+                      overlayColor: WidgetStateProperty.all(Colors.transparent),
                       // 禁用点击高亮
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       // 减少点击区域
@@ -227,8 +225,7 @@ class _MainSwitchState extends State<MainPluginSwitch> {
               inactiveThumbColor: const Color(0xFFFF91AE),
               inactiveTrackColor:
                   pluginSwitch ? Colors.white : const Color(0xFFF1F1F1),
-              trackOutlineColor:
-                  MaterialStateProperty.resolveWith((Set states) {
+              trackOutlineColor: WidgetStateProperty.resolveWith((Set states) {
                 return Colors.transparent; // Use the default color.
               }),
               value: pluginSwitch,
@@ -247,10 +244,29 @@ class _MainSwitchState extends State<MainPluginSwitch> {
 class PluginLoadingChart extends StatelessWidget {
   const PluginLoadingChart({super.key});
 
+  bool isOnlyOneElement(List<int> list) {
+    int nonZeroCount = 0;
+
+    for (var element in list) {
+      if (element != 0) {
+        nonZeroCount++;
+        if (nonZeroCount > 1) {
+          return false; // 如果发现不止一个非零元素，立即返回false
+        }
+      }
+    }
+
+    // 如果非零元素数量恰好为1，则返回true
+    return nonZeroCount == 1;
+  }
+
   @override
   Widget build(BuildContext context) {
-    int total = 10;
-    List<int> number = [4, 3, 2, 1];
+    final double width = MediaQuery.of(context).size.width / 2 - 30;
+    List<int> number = [10, 5, 3, 2];
+    int total = number.reduce((a, b) => a + b);
+
+    bool isFull = isOnlyOneElement(number);
 
     List<double> values =
         List.generate(number.length, (index) => number[index] / total);
@@ -261,7 +277,7 @@ class PluginLoadingChart extends StatelessWidget {
       [const Color(0xFFD977C0), const Color(0xFFE8A5D7)],
     ];
 
-    const List<String> labels = ["5s>", "3s>", "1s>", "0s>"];
+    const List<String> labels = ["高耗时", "中高耗时", "中耗时", "低耗时"];
     return Container(
         padding: const EdgeInsets.all(20),
         height: 310,
@@ -279,12 +295,36 @@ class PluginLoadingChart extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              "性能",
-              style: TextStyle(
-                fontSize: 25,
-                fontFamily: "Sweet",
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  "性能",
+                  style: TextStyle(
+                    fontSize: 25,
+                    fontFamily: "Sweet",
+                  ),
+                ),
+                Container(
+                  width: 120,
+                  height: 30,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                      color: const Color(
+                        0xFFE7E7E7,
+                      ).withOpacity(0.5),
+                      borderRadius: const BorderRadius.all(
+                        Radius.circular(10),
+                      )),
+                  child: const Text(
+                    "统计插件加载耗时",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                    ),
+                  ),
+                )
+              ],
             ),
             const SizedBox(
               height: 20,
@@ -293,8 +333,8 @@ class PluginLoadingChart extends StatelessWidget {
               Container(
                 margin: const EdgeInsets.all(10),
                 padding: const EdgeInsets.all(10),
-                width: 180,
-                height: 180,
+                width: width,
+                height: width,
                 decoration: const BoxDecoration(
                   color: Colors.transparent,
                   shape: BoxShape.circle,
@@ -302,9 +342,7 @@ class PluginLoadingChart extends StatelessWidget {
                 child: CustomPaint(
                   size: const Size(100, 100),
                   painter: _CircularGradientPainter(
-                    values: values,
-                    valueColors: valueColors,
-                  ),
+                      values: values, valueColors: valueColors, isFull: isFull),
                 ),
               ),
               Expanded(
@@ -338,7 +376,7 @@ class PluginLoadingChart extends StatelessWidget {
                                 e,
                                 style: const TextStyle(
                                   fontFamily: "Sweet",
-                                  fontSize: 20,
+                                  fontSize: 15,
                                 ),
                               ),
                               const SizedBox(
@@ -346,7 +384,7 @@ class PluginLoadingChart extends StatelessWidget {
                               ),
                               Text("${number[labels.indexOf(e)]}个",
                                   style: const TextStyle(
-                                      fontFamily: "Sweet", fontSize: 20))
+                                      fontFamily: "Sweet", fontSize: 15))
                             ],
                           ))
                       .toList(),
@@ -359,17 +397,23 @@ class PluginLoadingChart extends StatelessWidget {
 }
 
 class _CircularGradientPainter extends CustomPainter {
-  late List<double> values; // 目标进度
-  late List<List<Color>> valueColors;
+  List<double> values; // 目标进度
+  List<List<Color>> valueColors;
+  bool isFull = false;
 
-  _CircularGradientPainter({required this.values, required this.valueColors});
+  _CircularGradientPainter(
+      {required this.values, required this.valueColors, this.isFull = false});
 
   @override
   void paint(Canvas canvas, Size size) {
+    double space = isFull ? 0 : 0.5;
     // 绘制底层阴影
     double startAngle = -math.pi / 2;
 
     for (int index = 0; index < values.length; index++) {
+      if (values[index] == 0) {
+        continue;
+      }
       final Paint valuePaintShadow = Paint()
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 30) // 10 是模糊半径
         ..shader = LinearGradient(
@@ -442,6 +486,9 @@ class _CircularGradientPainter extends CustomPainter {
 
     startAngle = -math.pi / 2;
     for (int index = 0; index < values.length; index++) {
+      if (values[index] == 0) {
+        continue;
+      }
       final Paint valuePaint = Paint()
         // ..maskFilter = MaskFilter.blur(BlurStyle.normal, 10) // 10 是模糊半径
         ..shader = LinearGradient(
@@ -471,11 +518,15 @@ class _CircularGradientPainter extends CustomPainter {
       canvas.drawArc(
           rect,
           startAngle,
-          math.max(2 * math.pi * values[index] - 0.5, 0.05),
+          math.max(2 * math.pi * values[index] - space, 0.05),
           false,
           valuePaintShadow);
-      canvas.drawArc(rect, startAngle,
-          math.max(2 * math.pi * values[index] - 0.5, 0.05), false, valuePaint);
+      canvas.drawArc(
+          rect,
+          startAngle,
+          math.max(2 * math.pi * values[index] - space, 0.05),
+          false,
+          valuePaint);
       startAngle += 2 * math.pi * values[index];
     }
   }
@@ -494,39 +545,33 @@ class PluginList extends StatefulWidget {
 }
 
 class _PluginListState extends State<PluginList> {
+  List<Widget> generateWidgetsFromMap(Map map) {
+    return map.entries
+        .map((entry) => BasePluginCard(
+              pluginName: entry.value["name"][0],
+              pluginImage: const AssetImage("assets/images/Elysia.jpg"),
+              pluginDesc: entry.value["description"][0],
+              pluginVersion: entry.value["version"][0],
+              pluginAuthor: entry.value["author"][0],
+            ))
+        .toList();
+  }
+
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
     final height = size.height;
+    MyAppData myAppData = Provider.of<MyAppData>(context);
+    Map pluginsData = myAppData.pluginsData;
+    if (pluginsData.isEmpty) {
+      myAppData.getPluginsData();
+    }
     return Container(
-      color: const Color(0xFFF1F3F7),
-      height: height - 278,
-      child: ListView(
-        children: const [
-          BasePluginCard(
-            pluginName: '词云插件',
-            pluginImage: AssetImage("assets/images/Elysia.jpg"),
-            pluginDesc: '词云插件可以生成词云，用于展示文本中的关键词和频率',
-            pluginVersion: '1.0',
-            pluginAuthor: '然飞',
-          ),
-          BasePluginCard(
-            pluginName: '词云插件',
-            pluginImage: AssetImage("assets/images/Elysia.jpg"),
-            pluginDesc: '词云插件可以生成词云，用于展示文本中的关键词和频率',
-            pluginVersion: '1.0',
-            pluginAuthor: '然飞',
-          ),
-          BasePluginCard(
-            pluginName: '词云插件',
-            pluginImage: AssetImage("assets/images/Elysia.jpg"),
-            pluginDesc: '词云插件可以生成词云，用于展示文本中的关键词和频率',
-            pluginVersion: '1.0',
-            pluginAuthor: '然飞',
-          )
-        ],
-      ),
-    );
+        color: const Color(0xFFF1F3F7),
+        height: height - 278,
+        child: ListView(
+          children: generateWidgetsFromMap(pluginsData),
+        ));
   }
 }
 
@@ -553,147 +598,181 @@ class _BasePluginCardState extends State<BasePluginCard> {
   bool pluginState = true;
   int level = 2;
 
-  // // 展示详情页
-  // void _showBottomSheet(BuildContext context) {
-  //   showModalBottomSheet(
-  //     context: context,
-  //     builder: (BuildContext context) {
-  //       return Container(
-  //         padding: const EdgeInsets.all(20.0),
-  //         height: 200.0, // 可以根据需要调整高度
-  //         child: Column(
-  //           children: <Widget>[
-  //             const Text('Bottom Sheet Content'),
-  //             ElevatedButton(
-  //               onPressed: () {
-  //                 Navigator.of(context).pop(); // 关闭Bottom Sheet
-  //               },
-  //               child: const Text('Close'),
-  //             ),
-  //           ],
-  //         ),
-  //       );
-  //     },
-  //   );
-  // }
+  // 展示详情页
+  void showDetails(BuildContext context) {
+    showModalBottomSheet(
+        context: context,
+        // backgroundColor: Colors.white,
+        builder: (context) {
+          return Container(
+            padding: const EdgeInsets.all(20),
+            width: double.infinity,
+            height: 700, // 可以根据需要调整高度
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: [
+                const Text(
+                  '详情',
+                  style: TextStyle(
+                    fontSize: 30,
+                  ),
+                ),
+                Container(
+                    alignment: Alignment.centerLeft,
+                    width: double.infinity,
+                    height: 200,
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(10),
+                      color: Colors.white,
+                    ),
+                    child: const Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "基本设置",
+                            style: TextStyle(
+                              fontSize: 20,
+                            ),
+                          ),
+                          Row(children: [
+                            Text("优先级"),
+                          ])
+                        ]))
+              ],
+            ),
+          );
+        });
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-        height: 140,
-        margin: const EdgeInsets.symmetric(vertical: 10),
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          gradient: pluginState
-              ? const LinearGradient(
-                  colors: [Color(0xFFFFB4CA), Color(0xFFFFB4CA)],
-                )
-              : const LinearGradient(
-                  colors: [Colors.white, Colors.white70],
+    return GestureDetector(
+        onTap: () {
+          showDetails(context);
+        },
+        child: IntrinsicHeight(
+            child: Container(
+                // height: 140,
+                margin: const EdgeInsets.symmetric(vertical: 10),
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  gradient: pluginState
+                      ? const LinearGradient(
+                          colors: [Color(0xFFFFB4CA), Color(0xFFFFB4CA)],
+                        )
+                      : const LinearGradient(
+                          colors: [Colors.white, Colors.white70],
+                        ),
+                  boxShadow: [
+                    BoxShadow(
+                        color: const Color(0xFFF784A7),
+                        blurRadius: 30,
+                        spreadRadius: pluginState ? -18 : -20,
+                        offset: const Offset(5, 10))
+                  ],
+                  borderRadius: BorderRadius.circular(10),
                 ),
-          boxShadow: [
-            BoxShadow(
-                color: const Color(0xFFF784A7),
-                blurRadius: 30,
-                spreadRadius: pluginState ? -18 : -20,
-                offset: const Offset(5, 10))
-          ],
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Stack(
-          children: [
-            Column(
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                child: Stack(
                   children: [
-                    Container(
-                      height: 70,
-                      width: 70,
-                      decoration: BoxDecoration(
-                          image: DecorationImage(
-                            image: widget.pluginImage,
-                            fit: BoxFit.cover,
-                          ),
-                          borderRadius:
-                              const BorderRadius.all(Radius.circular(10))),
-                    ),
-                    const SizedBox(width: 20),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(widget.pluginName,
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              height: 70,
+                              width: 70,
+                              decoration: BoxDecoration(
+                                  image: DecorationImage(
+                                    image: widget.pluginImage,
+                                    fit: BoxFit.cover,
+                                  ),
+                                  borderRadius: const BorderRadius.all(
+                                      Radius.circular(10))),
+                            ),
+                            const SizedBox(width: 20),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(widget.pluginName,
+                                    style: TextStyle(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.bold,
+                                        fontFamily: "Sweet",
+                                        color: pluginState
+                                            ? Colors.white
+                                            : Colors.black)),
+                                Text(widget.pluginAuthor,
+                                    style: TextStyle(
+                                        fontSize: 15,
+                                        fontFamily: "Sweet",
+                                        color: pluginState
+                                            ? Colors.white
+                                            : Colors.grey)),
+                                Text("版本${widget.pluginVersion}",
+                                    style: TextStyle(
+                                        fontSize: 14,
+                                        fontFamily: "Sweet",
+                                        color: pluginState
+                                            ? Colors.white
+                                            : Colors.grey)),
+                              ],
+                            )
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(widget.pluginDesc,
                             style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                fontFamily: "Sweet",
-                                color:
-                                    pluginState ? Colors.white : Colors.black)),
-                        Text(widget.pluginAuthor,
-                            style: TextStyle(
-                                fontSize: 15,
-                                fontFamily: "Sweet",
-                                color:
-                                    pluginState ? Colors.white : Colors.grey)),
-                        Text("版本${widget.pluginVersion}",
-                            style: TextStyle(
-                                fontSize: 14,
-                                fontFamily: "Sweet",
-                                color:
-                                    pluginState ? Colors.white : Colors.grey)),
+                              fontSize: 15,
+                              fontFamily: "Sweet",
+                              color: pluginState ? Colors.white : Colors.grey,
+                            )),
                       ],
-                    )
+                    ),
+                    Align(
+                        alignment: Alignment.topRight,
+                        child: SizedBox(
+                          width: 90,
+                          height: 50,
+                          child: Row(
+                            children: [
+                              if (level == 1)
+                                const Icon(
+                                  Icons.warning_amber_rounded,
+                                  color: Colors.amberAccent,
+                                  size: 30,
+                                ),
+                              if (level == 2)
+                                const Icon(
+                                  Icons.error_outline_rounded,
+                                  color: Colors.red,
+                                  size: 30,
+                                ),
+                              Switch(
+                                  activeColor: Colors.white,
+                                  activeTrackColor: const Color(0xFFFF7EA1),
+                                  inactiveThumbColor: const Color(0xFFFF91AE),
+                                  inactiveTrackColor: Colors.white,
+                                  trackOutlineColor:
+                                      WidgetStateProperty.resolveWith(
+                                          (Set states) {
+                                    return Colors
+                                        .transparent; // Use the default color.
+                                  }),
+                                  value: pluginState,
+                                  onChanged: (bool value) {
+                                    setState(() {
+                                      pluginState = value;
+                                    });
+                                  }),
+                            ],
+                          ),
+                        )),
                   ],
-                ),
-                const SizedBox(height: 8),
-                Text(widget.pluginDesc,
-                    maxLines: 2,
-                    style: TextStyle(
-                        fontSize: 15,
-                        fontFamily: "Sweet",
-                        color: pluginState ? Colors.white : Colors.grey,
-                        overflow: TextOverflow.ellipsis)),
-              ],
-            ),
-            Align(
-                alignment: Alignment.topRight,
-                child: SizedBox(
-                  width: 90,
-                  height: 50,
-                  child: Row(
-                    children: [
-                      if (level == 1)
-                        const Icon(
-                          Icons.warning_amber_rounded,
-                          color: Colors.amberAccent,
-                          size: 30,
-                        ),
-                      if (level == 2)
-                        const Icon(
-                          Icons.error_outline_rounded,
-                          color: Colors.red,
-                          size: 30,
-                        ),
-                      Switch(
-                          activeColor: Colors.white,
-                          activeTrackColor: const Color(0xFFFF7EA1),
-                          inactiveThumbColor: const Color(0xFFFF91AE),
-                          inactiveTrackColor: Colors.white,
-                          trackOutlineColor:
-                              MaterialStateProperty.resolveWith((Set states) {
-                            return Colors.transparent; // Use the default color.
-                          }),
-                          value: pluginState,
-                          onChanged: (bool value) {
-                            setState(() {
-                              pluginState = value;
-                            });
-                          }),
-                    ],
-                  ),
-                )),
-          ],
-        ));
+                ))));
   }
 }
 
@@ -816,7 +895,7 @@ class TotalCard extends StatelessWidget {
                       child: LoadingLineChart(),
                     )),
                     Text(
-                      "ACTION",
+                      "ACTIVE",
                       style: TextStyle(
                         color: Color(0xFF6A6BF3),
                         fontWeight: FontWeight.bold,

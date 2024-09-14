@@ -1,7 +1,7 @@
 {
     "logs": [
         {
-            "outputFile": "com.miosdream.robot_control.app-mergeReleaseResources-9:/values-night-v8/values-night-v8.xml",
+            "outputFile": "com.miosdream.robbot_control.app-mergeReleaseResources-29:/values-night-v8/values-night-v8.xml",
             "map": [
                 {
                     "source": "E:\\robot_control\\android\\app\\src\\main\\res\\values-night\\styles.xml",
