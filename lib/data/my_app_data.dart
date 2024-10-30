@@ -230,7 +230,7 @@ class MyAppData extends ChangeNotifier {
     notifyListeners();
   }
 
-  // 机器人主开关
+  // 机器人插件主开关
   late bool _mainPluginSwitch;
 
   bool get mainPluginSwitch => _mainPluginSwitch;
@@ -241,16 +241,41 @@ class MyAppData extends ChangeNotifier {
     notifyListeners();
   }
 
-  Map _pluginsData = {};
+  late bool _mainGroupSwitch;
 
-  Map get pluginsData => _pluginsData;
+  bool get mainGroupSwitch => _mainGroupSwitch;
+
+  void setMainGroupSwitchState(bool value) async {
+    _mainGroupSwitch = value;
+    await asyncData.setBool("mainGroupSwitch", value);
+    notifyListeners();
+  }
+
+  Map pluginsData = {};
 
   Future<void> getPluginsData() async {
-    final response = await http.get(Uri.parse("$address/Plugin_list"));
+    final response = await http.get(Uri.parse("$address/plugin_list"));
 
     if (response.statusCode == 200) {
-      _pluginsData = jsonDecode(utf8.decode(response.bodyBytes));
+      pluginsData = jsonDecode(utf8.decode(response.bodyBytes));
       notifyListeners();
+    }
+  }
+
+  Future<bool> updatePlugin(Map newPluginSetting) async {
+    try {
+      final response = await http.post(Uri.parse("$address/plugin_list"),
+          body: jsonEncode(newPluginSetting));
+
+      if (response.statusCode == 200) {
+        await getPluginsData();
+        notifyListeners();
+        return true;
+      } else {
+        return false;
+      }
+    } catch (_) {
+      return false;
     }
   }
 
@@ -259,6 +284,7 @@ class MyAppData extends ChangeNotifier {
     _selectedCardIndex = await asyncData.getInt("selectedCardIndex") ?? 0;
     _mainSwitch = await asyncData.getBool("mainSwitch") ?? true;
     _mainPluginSwitch = await asyncData.getBool("mainPluginSwitch") ?? true;
+    _mainGroupSwitch = await asyncData.getBool("mainGroupSwitch") ?? true;
     _address = _robots.isNotEmpty ? _robots[_selectedCardIndex]["address"] : "";
     _userId = _robots.isNotEmpty ? _robots[_selectedCardIndex]["user_id"] : "";
     _userName =

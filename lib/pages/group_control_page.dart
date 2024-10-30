@@ -69,7 +69,6 @@ class _GroupControlBodyState extends State<GroupControlBody> {
   Widget build(BuildContext context) {
     MyAppData myAppData = Provider.of<MyAppData>(context);
     String address = myAppData.robots[myAppData.selectedCardIndex]["address"];
-    // Map data = {"group_name": "群组1", "group_id": "910671041"};
 
     return Container(
         color: const Color(0xFFF1F3F7),
@@ -227,7 +226,7 @@ class _GroupCardState extends State<GroupCard> {
               offset: Offset(5, 10))
         ],
       ),
-      child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+      child: Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
         Row(
           children: [
             Container(

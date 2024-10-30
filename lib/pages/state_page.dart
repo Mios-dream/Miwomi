@@ -432,7 +432,7 @@ class _CircularGradientPainter extends CustomPainter {
 class RomAndMemoryCard extends StatelessWidget {
   const RomAndMemoryCard({super.key});
 
-  final int usedRom = 500;
+  final int usedRom = 20;
   final double usedDisk = 0.7;
 
   @override
@@ -536,29 +536,29 @@ class RomAndMemoryCard extends StatelessWidget {
                                               ),
                                             ),
                                           ),
-                                          Positioned(
-                                            top: 10,
-                                            left: 80,
-                                            child: Container(
-                                                alignment: Alignment.center,
-                                                width: 40,
-                                                height: 25,
-                                                decoration: BoxDecoration(
-                                                  color:
-                                                      const Color(0xFFFD6B6F),
-                                                  borderRadius:
-                                                      BorderRadius.circular(50),
-                                                ),
-                                                child: IconButton(
-                                                    onPressed: () {},
-                                                    icon: const Icon(
-                                                      // Icons.arrow_drop_down_rounded,
-                                                      Icons
-                                                          .cleaning_services_rounded,
-                                                      color: Colors.white,
-                                                      size: 10,
-                                                    ))),
-                                          )
+                                          // Positioned(
+                                          //   top: 10,
+                                          //   left: 80,
+                                          //   child: Container(
+                                          //       alignment: Alignment.center,
+                                          //       width: 40,
+                                          //       height: 25,
+                                          //       decoration: BoxDecoration(
+                                          //         color:
+                                          //             const Color(0xFFFD6B6F),
+                                          //         borderRadius:
+                                          //             BorderRadius.circular(50),
+                                          //       ),
+                                          //       child: IconButton(
+                                          //           onPressed: () {},
+                                          //           icon: const Icon(
+                                          //             // Icons.arrow_drop_down_rounded,
+                                          //             Icons
+                                          //                 .cleaning_services_rounded,
+                                          //             color: Colors.white,
+                                          //             size: 10,
+                                          //           ))),
+                                          // )
                                         ],
                                       ),
                                     )

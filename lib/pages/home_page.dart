@@ -179,7 +179,7 @@ class BaseRobotCard extends StatefulWidget {
 class _BaseRobotCardState extends State<BaseRobotCard> {
   late bool isOnline = false; // 是否在线
   late bool isSelected; // 是否被选中
-  int level = 0; // 等级
+  int level = 6; // 等级
   bool isRunning = true; // 是否正在运行
 
   @override
@@ -380,7 +380,7 @@ class RobotInfo extends StatefulWidget {
 }
 
 class _RobotInfoState extends State<RobotInfo> {
-  var basicInformation = ["系统Windows", "运行时间3天12时", "内核版本号1.2", "世界第一可爱"];
+  var basicInformation = ["系统Windows", "内核版本号1.2", "世界第一可爱", "插件全部加载完成"];
 
   List<Widget> getTips() {
     var list = <Widget>[];
@@ -759,12 +759,15 @@ class _FunctionInfoListState extends State<FunctionInfoList> {
             myAppData.setMainPluginSwitchState(value);
           },
         ),
-        const BasicFunctionCard(
-          value: false,
+        BasicFunctionCard(
+          value: myAppData.mainGroupSwitch,
           icon: Icons.group,
           title: "群聊",
           tips: "成功加载所有群聊",
-          jumpPage: group_control_page.GroupControlPage(),
+          jumpPage: const group_control_page.GroupControlPage(),
+          buttonFunction: (value) {
+            myAppData.setMainGroupSwitchState(value);
+          },
         ),
         Container(
           height: 100, // 通过设置额外元素来,来设置与底部的距离

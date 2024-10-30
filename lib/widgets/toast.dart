@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:oktoast/oktoast.dart';
 
-///level: 0 info 1 success 2 warning 3 error
+///level: 0 info 1 warning 2 success 3 error
 ToastFuture notificationToast({required String text, required int level}) {
   List levelList = ["Info", "Warning", "Success", "Error"];
   List<IconData> myIcons = [

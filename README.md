@@ -1,5 +1,3 @@
-
-
 ---
 
 <div align="center">
@@ -8,7 +6,7 @@
 
 ![MioRobot](https://counter.seku.su/cmoe?name=Miwomi&theme=r34)
 
-![os](https://img.shields.io/badge/os-win,linux,mac-orange?style=for-the-badge) ![python](https://img.shields.io/badge/dart-3+-blue?style=for-the-badge) [![License](https://img.shields.io/badge/LICENSE-GPL_3.0-green.svg?style=for-the-badge)](./LICENSE)
+![os](https://img.shields.io/badge/os-win,linux,web,android-orange?style=for-the-badge) ![dart](https://img.shields.io/badge/dart-3+-blue?style=for-the-badge) [![License](https://img.shields.io/badge/LICENSE-GPL_3.0-green.svg?style=for-the-badge)](./LICENSE)
 
 </div>
 
@@ -19,16 +17,18 @@
 <table style="display: table; border-collapse: collapse; margin: auto; background-color:transparent;">
 <tbody><tr>
 <td style="vertical-align: top; color:#B2B7F2; font-size:36px; font-family:'Times New Roman',serif; font-weight:bold; text-align:left; padding:10px 10px; line-height:100%">“</td>
-    <td style="text-align: center; padding: 1em; vertical-align: middle;"><font face="楷体"><span style="color:#FFC0CB;"><b>请阁下一直喜欢澪哦！</b></span></font></td>
+<td style="text-align: center; padding: 1em; vertical-align: middle;"><font face="楷体"><span style="color:#FFC0CB;"><b>请阁下一直喜欢澪哦！</b></span></font></td>
 <td style="vertical-align: bottom; color:#B2B7F2; font-size:36px; font-family:'Times New Roman',serif; font-weight:bold; text-align:left; padding:10px 10px; line-height:100%">”</td>
 </tr>
 </tbody></table>
 </div>
 
-
-
-
-
 # Miwomi
 
 基于flutter构建的全平台QQ机器人管理软件
+
+
+
+## 页面截图
+
+<img src="E:\robot_control\README.assets\屏幕截图 2024-09-11 223655.png" alt="屏幕截图 2024-09-11 223655" style="zoom:50%;" />

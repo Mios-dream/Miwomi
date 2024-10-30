@@ -1,9 +1,14 @@
 // import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:flutter/services.dart';
 import '../data/my_app_data.dart';
 import 'package:provider/provider.dart';
 import 'dart:math' as math;
+import 'dart:ui' as ui;
+
+import '../tools/deep_copy.dart';
+import '../widgets/toast.dart';
 
 class PluginPage extends StatelessWidget {
   const PluginPage({super.key});
@@ -83,6 +88,7 @@ class _PluginPageBodyState extends State<PluginPageBody> {
     return Stack(children: [
       Container(
         width: double.infinity,
+        height: double.infinity,
         color: const Color(0xFFF1F3F7),
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -263,7 +269,7 @@ class PluginLoadingChart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final double width = MediaQuery.of(context).size.width / 2 - 30;
-    List<int> number = [10, 5, 3, 2];
+    List<int> number = [8, 2, 1, 1];
     int total = number.reduce((a, b) => a + b);
 
     bool isFull = isOnlyOneElement(number);
@@ -311,15 +317,15 @@ class PluginLoadingChart extends StatelessWidget {
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
                       color: const Color(
-                        0xFFE7E7E7,
-                      ).withOpacity(0.5),
+                        0xFFF0F0F0,
+                      ).withOpacity(0.6),
                       borderRadius: const BorderRadius.all(
                         Radius.circular(10),
                       )),
                   child: const Text(
                     "统计插件加载耗时",
                     style: TextStyle(
-                      color: Colors.white,
+                      color: Colors.grey,
                       fontSize: 12,
                     ),
                   ),
@@ -546,111 +552,483 @@ class PluginList extends StatefulWidget {
 
 class _PluginListState extends State<PluginList> {
   List<Widget> generateWidgetsFromMap(Map map) {
-    return map.entries
-        .map((entry) => BasePluginCard(
-              pluginName: entry.value["name"][0],
-              pluginImage: const AssetImage("assets/images/Elysia.jpg"),
-              pluginDesc: entry.value["description"][0],
-              pluginVersion: entry.value["version"][0],
-              pluginAuthor: entry.value["author"][0],
-            ))
-        .toList();
+    return map.entries.map((entry) {
+      if (entry.value == null) {
+        return BasePluginCard(
+          pluginKey: entry.key,
+          pluginName: entry.key,
+          pluginImage: const AssetImage("assets/images/Elysia.jpg"),
+          pluginDesc: "插件读取错误",
+          pluginVersion: "null",
+          pluginAuthor: "null",
+          pluginState: false,
+          pluginData: const {},
+        );
+      }
+      Map data = entry.value;
+      return BasePluginCard(
+          pluginKey: entry.key,
+          pluginName: data["name"],
+          pluginImage: const AssetImage("assets/images/Elysia.jpg"),
+          pluginDesc: data["description"],
+          pluginVersion: data["version"],
+          pluginAuthor: data["author"],
+          pluginState: data["setting"]["load"],
+          pluginData: data);
+    }).toList();
   }
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-    final height = size.height;
     MyAppData myAppData = Provider.of<MyAppData>(context);
     Map pluginsData = myAppData.pluginsData;
     if (pluginsData.isEmpty) {
       myAppData.getPluginsData();
     }
-    return Container(
-        color: const Color(0xFFF1F3F7),
-        height: height - 278,
-        child: ListView(
-          children: generateWidgetsFromMap(pluginsData),
-        ));
+    return Selector<MyAppData, Map>(
+        selector: (_, myAppData) => myAppData.pluginsData,
+        builder: (context, pluginsData, _) {
+          return Expanded(
+              child: Container(
+                  color: const Color(0xFFF1F3F7),
+                  child: ListView(
+                    children: generateWidgetsFromMap(pluginsData),
+                  )));
+        });
   }
 }
 
 class BasePluginCard extends StatefulWidget {
+  final String pluginKey;
   final String pluginName;
   final ImageProvider pluginImage;
   final String pluginDesc;
   final String pluginVersion;
   final String pluginAuthor;
+  final bool pluginState;
+  final Map pluginData;
 
-  const BasePluginCard(
-      {super.key,
-      required this.pluginName,
-      required this.pluginImage,
-      required this.pluginDesc,
-      required this.pluginVersion,
-      required this.pluginAuthor});
+  const BasePluginCard({
+    super.key,
+    required this.pluginName,
+    required this.pluginImage,
+    required this.pluginDesc,
+    required this.pluginVersion,
+    required this.pluginAuthor,
+    required this.pluginState,
+    required this.pluginKey,
+    required this.pluginData,
+  });
 
   @override
   State<BasePluginCard> createState() => _BasePluginCardState();
 }
 
 class _BasePluginCardState extends State<BasePluginCard> {
-  bool pluginState = true;
+  bool pluginState = false;
+
+  // 警告等级
   int level = 2;
+  late Map pluginSettingData;
+  late Map rowSettingData;
+
+  @override
+  void initState() {
+    super.initState();
+    pluginSettingData = widget.pluginData;
+    rowSettingData = deepCopy(widget.pluginData);
+    pluginState = widget.pluginState;
+    if (widget.pluginVersion != "null") {
+      controller.text = pluginSettingData["setting"]["priority"].toString();
+      controllerRuntimeThreshold.text = pluginSettingData["developer_setting"]
+              ["runtime_threshold"]
+          .toString();
+    } else {
+      controller.text = "0";
+      controllerRuntimeThreshold.text = "0";
+    }
+  }
+
+  @override
+  void dispose() {
+    controller.dispose();
+    controllerRuntimeThreshold.dispose();
+    super.dispose();
+  }
+
+  TextEditingController controller = TextEditingController();
+  TextEditingController controllerRuntimeThreshold = TextEditingController();
+
+  void update(newDate) async {
+    MyAppData myAppData = Provider.of<MyAppData>(context, listen: false);
+    bool state = await myAppData.updatePlugin(newDate);
+    if (state) {
+      notificationToast(text: "保存成功", level: 2);
+    } else {
+      setState(() {
+        pluginSettingData = rowSettingData;
+      });
+      notificationToast(text: "保存失败", level: 1);
+    }
+  }
 
   // 展示详情页
   void showDetails(BuildContext context) {
-    showModalBottomSheet(
+    showDialog(
         context: context,
-        // backgroundColor: Colors.white,
-        builder: (context) {
-          return Container(
-            padding: const EdgeInsets.all(20),
-            width: double.infinity,
-            height: 700, // 可以根据需要调整高度
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.start,
-              children: [
-                const Text(
-                  '详情',
-                  style: TextStyle(
-                    fontSize: 30,
-                  ),
-                ),
-                Container(
-                    alignment: Alignment.centerLeft,
+        barrierColor: Colors.transparent,
+        builder: (buildContext) {
+          final List<String> events = ['message', 'notice', 'request'];
+          final List<String> options = ['消息事件', '通知事件', '请求事件'];
+          List<String> selectOptions = [];
+          final List<IconData> myIcons = [
+            Icons.message_outlined,
+            Icons.notifications_outlined,
+            Icons.request_page_outlined
+          ];
+
+          return StatefulBuilder(
+              builder: (BuildContext context, StateSetter setState) {
+            //   单个设置参数组件
+            Widget settingCard(
+                {required String setting,
+                required String description,
+                bool isDeveloperSetting = false}) {
+              String settingKey =
+                  isDeveloperSetting ? "developer_setting" : "setting";
+
+              if (pluginSettingData[settingKey][setting] is List) {
+                for (String event in pluginSettingData[settingKey][setting]) {
+                  if (events.contains(event)) {
+                    selectOptions.add(options[events.indexOf(event)]);
+                  }
+                }
+
+                return SizedBox(
                     width: double.infinity,
-                    height: 200,
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(10),
-                      color: Colors.white,
-                    ),
-                    child: const Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            "基本设置",
-                            style: TextStyle(
-                              fontSize: 20,
-                            ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          description,
+                          style: const TextStyle(
+                            fontSize: 18,
                           ),
-                          Row(children: [
-                            Text("优先级"),
-                          ])
-                        ]))
-              ],
-            ),
-          );
-        });
+                        ),
+                        const SizedBox(
+                          height: 10,
+                        ),
+                        Wrap(
+                            runSpacing: 5,
+                            spacing: 5,
+                            children: List.generate(options.length, (index) {
+                              bool isSelect =
+                                  selectOptions.contains(options[index]);
+                              return IntrinsicWidth(
+                                  child: Container(
+                                      height: 40,
+                                      decoration: BoxDecoration(
+                                          color: isSelect
+                                              ? const Color(0xFFFBA3AE)
+                                              : const Color(0xFFE5E2EA),
+                                          borderRadius:
+                                              BorderRadius.circular(10)),
+                                      child: TextButton(
+                                          style: ButtonStyle(
+                                            overlayColor:
+                                                WidgetStateProperty.all(
+                                                    Colors.transparent),
+                                          ),
+                                          onPressed: () {
+                                            setState(() {
+                                              if (isSelect) {
+                                                selectOptions
+                                                    .remove(options[index]);
+                                              } else {
+                                                selectOptions
+                                                    .add(options[index]);
+                                              }
+                                            });
+                                          },
+                                          child: Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
+                                            children: [
+                                              Icon(myIcons[index],
+                                                  color: isSelect
+                                                      ? Colors.white
+                                                      : Colors.black),
+                                              Text(options[index],
+                                                  style: TextStyle(
+                                                      color: isSelect
+                                                          ? Colors.white
+                                                          : Colors.black))
+                                            ],
+                                          ))));
+                            }))
+                      ],
+                    ));
+              } else if (pluginSettingData[settingKey][setting] is int ||
+                  pluginSettingData[settingKey][setting] is double) {
+                late TextEditingController myController;
+                if (setting == "priority") {
+                  myController = controller;
+                } else {
+                  myController = controllerRuntimeThreshold;
+                }
+
+                return Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        description,
+                        style: const TextStyle(
+                          fontSize: 18,
+                        ),
+                      ),
+                      SizedBox(
+                          width: 70,
+                          height: 40,
+                          child: TextField(
+                            textAlign: TextAlign.center,
+                            controller: myController,
+                            // 预填充文本
+                            style: const TextStyle(fontSize: 20),
+                            keyboardType: TextInputType.number,
+                            // 使用数字键盘
+                            inputFormatters: [
+                              FilteringTextInputFormatter.allow(
+                                  RegExp(r'[0-9]')),
+                            ], // 只允许输入数字
+                          ))
+                      // 更新
+                    ]);
+              } else if (pluginSettingData[settingKey][setting] is bool) {
+                bool settingSwitch = pluginSettingData[settingKey][setting];
+                return Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        description,
+                        style: const TextStyle(
+                          fontSize: 18,
+                        ),
+                      ),
+                      Switch(
+                          activeColor: Colors.white,
+                          activeTrackColor: const Color(0xFFF7C1C8),
+                          inactiveThumbColor: Colors.white,
+                          inactiveTrackColor: settingSwitch
+                              ? Colors.white
+                              : const Color(0xFFF1F1F1),
+                          trackOutlineColor:
+                              WidgetStateProperty.resolveWith((Set states) {
+                            return settingSwitch
+                                ? const Color(0xFFFBA3AF)
+                                : const Color(0xFFD6D5DB);
+                          }),
+                          value: settingSwitch,
+                          onChanged: (bool value) {
+                            setState(() {
+                              // 更新状态
+                              settingSwitch = value;
+                              pluginSettingData[settingKey][setting] = value;
+                            });
+                          })
+                    ]);
+              } else {
+                return Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        description,
+                        style: const TextStyle(
+                          fontSize: 18,
+                        ),
+                      ),
+                      IntrinsicWidth(
+                          child: Container(
+                              alignment: Alignment.center,
+                              height: 30,
+                              decoration: BoxDecoration(
+                                  color: Colors.grey.shade200,
+                                  borderRadius: BorderRadius.circular(10)),
+                              child: Text(
+                                "    ${pluginSettingData[settingKey][setting]}    ",
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                ),
+                              )))
+                    ]);
+              }
+            }
+
+            return AlertDialog(
+                surfaceTintColor: Colors.transparent,
+                backgroundColor: Colors.white54,
+                contentPadding: const EdgeInsets.all(10),
+                content: ClipRRect(
+                    borderRadius: const BorderRadius.all(Radius.circular(20)),
+                    child: BackdropFilter(
+                        filter: ui.ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                        child: SizedBox(
+                            width: 400,
+                            height: 500,
+                            child: Stack(children: [
+                              Padding(
+                                padding: const EdgeInsets.all(10),
+                                child: ListView(children: [
+                                  const SizedBox(
+                                    height: 40,
+                                  ),
+                                  const Padding(
+                                    padding: EdgeInsets.symmetric(vertical: 10),
+                                    child: Text(
+                                      "  通用",
+                                      style: TextStyle(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                  IntrinsicHeight(
+                                      child: Container(
+                                          padding: const EdgeInsets.all(15),
+                                          width: double.infinity,
+                                          decoration: const BoxDecoration(
+                                              color: Colors.white,
+                                              borderRadius: BorderRadius.all(
+                                                  Radius.circular(20))),
+                                          child: Column(
+                                            children: [
+                                              settingCard(
+                                                  setting: 'load',
+                                                  description: '是否开启'),
+                                              const Divider(),
+                                              settingCard(
+                                                  setting: 'priority',
+                                                  description: '运行优先级'),
+                                              const Divider(),
+                                              settingCard(
+                                                  setting:
+                                                      'prevent_other_plugins',
+                                                  description: '阻止其他插件运行'),
+                                              const Divider(),
+                                              settingCard(
+                                                setting: 'event',
+                                                description: '监听事件',
+                                              ),
+                                              const Divider(),
+                                              settingCard(
+                                                  setting: 'callback_name',
+                                                  description: '回调函数名'),
+                                            ],
+                                          ))),
+                                  const Padding(
+                                      padding:
+                                          EdgeInsets.only(bottom: 10, top: 20),
+                                      child: Text(
+                                        "  开发者设置",
+                                        style: TextStyle(
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      )),
+                                  IntrinsicHeight(
+                                    child: Container(
+                                      padding: const EdgeInsets.all(15),
+                                      decoration: const BoxDecoration(
+                                          color: Colors.white,
+                                          borderRadius: BorderRadius.all(
+                                              Radius.circular(20))),
+                                      child: Column(
+                                        children: [
+                                          settingCard(
+                                              setting: 'count_runtime',
+                                              description: '是否记录运行时间',
+                                              isDeveloperSetting: true),
+                                          const Divider(),
+                                          settingCard(
+                                              setting: 'runtime_threshold',
+                                              description: '运行时间阈值',
+                                              isDeveloperSetting: true),
+                                          const Divider(),
+                                          settingCard(
+                                              setting: 'allow_high_time_cost',
+                                              description: '是否允许高耗时操作',
+                                              isDeveloperSetting: true),
+                                        ],
+                                      ),
+                                    ),
+                                  )
+                                ]),
+                              ),
+                              Container(
+                                  width: double.infinity,
+                                  height: 70,
+                                  padding: const EdgeInsets.all(10),
+                                  decoration: const BoxDecoration(
+                                    gradient: LinearGradient(
+                                        begin: Alignment.topCenter,
+                                        end: Alignment.bottomCenter,
+                                        colors: [
+                                          Colors.white70,
+                                          Colors.white70,
+                                          Colors.white10
+                                        ]),
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      const Text(
+                                        " 插件详情",
+                                        style: TextStyle(
+                                          // fontFamily: "Sweet",
+                                          fontSize: 25,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      Container(
+                                        width: 40,
+                                        height: 40,
+                                        decoration: const BoxDecoration(
+                                          color: Color(0xFFF7C1C8),
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: IconButton(
+                                            onPressed: () {
+                                              Map newDate = {
+                                                "callback_name":
+                                                    pluginSettingData["setting"]
+                                                        ["callback_name"],
+                                                "setting_data":
+                                                    pluginSettingData
+                                              };
+
+                                              update(newDate);
+                                            },
+                                            icon: const Icon(
+                                              Icons.save,
+                                              color: Colors.white,
+                                            )),
+                                      )
+                                    ],
+                                  ))
+                            ])))));
+          });
+        }).then((_) {
+      pluginSettingData = deepCopy(rowSettingData);
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
         onTap: () {
-          showDetails(context);
+          if (widget.pluginVersion != "null") {
+            showDetails(context);
+          }
         },
         child: IntrinsicHeight(
             child: Container(
@@ -738,6 +1116,7 @@ class _BasePluginCardState extends State<BasePluginCard> {
                           width: 90,
                           height: 50,
                           child: Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
                             children: [
                               if (level == 1)
                                 const Icon(
@@ -765,7 +1144,9 @@ class _BasePluginCardState extends State<BasePluginCard> {
                                   value: pluginState,
                                   onChanged: (bool value) {
                                     setState(() {
-                                      pluginState = value;
+                                      if (widget.pluginData.isNotEmpty) {
+                                        pluginState = value;
+                                      }
                                     });
                                   }),
                             ],
@@ -823,15 +1204,21 @@ class _ScoreState extends State<Score> {
                 ),
               ),
             ]),
-            Container(
+            SizedBox(
               height: 50,
               width: 120,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: const Color(0xFFFF91AE),
-                borderRadius: BorderRadius.circular(50),
-              ),
-              child: TextButton(
+              // alignment: Alignment.center,
+              // decoration: BoxDecoration(
+              //   color: const Color(0xFFFF91AE),
+              //   borderRadius: BorderRadius.circular(50),
+              // ),
+              child: ElevatedButton(
+                style: ButtonStyle(
+                  elevation: const WidgetStatePropertyAll(0),
+                  backgroundColor:
+                      WidgetStateProperty.all(const Color(0xFFFF91AE)),
+                  overlayColor: const WidgetStatePropertyAll(Colors.white10),
+                ),
                 onPressed: () {},
                 child: const Text(
                   "插件重载",
@@ -1199,16 +1586,11 @@ class PluginsStatus extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-    final height = size.height;
-    return Container(
+    return Expanded(
+        child: Container(
       color: const Color(0xFFF1F3F7),
-      height: height - 278,
       child: ListView(
         children: const [
-          SizedBox(
-            height: 20,
-          ),
           Score(),
           TotalCard(),
           PluginLoadingChart(),
@@ -1218,6 +1600,6 @@ class PluginsStatus extends StatelessWidget {
           )
         ],
       ),
-    );
+    ));
   }
 }

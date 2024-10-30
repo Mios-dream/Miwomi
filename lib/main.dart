@@ -4,13 +4,18 @@ import 'package:provider/provider.dart';
 import 'data/my_app_data.dart';
 import 'package:oktoast/oktoast.dart';
 import 'dart:async';
+import './pages/home_page.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(MyApp());
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key);
+  MyApp({Key? key}) : super(key: key);
+  final Map<String, WidgetBuilder> routes = {
+    '/': (context) => const Tabs(),
+    '/HomePage': (context) => const HomePage(),
+  };
 
   // This widget is the root of your application.
   @override
@@ -20,6 +25,7 @@ class MyApp extends StatelessWidget {
         child: OKToast(
             // 这一步
             child: MaterialApp(
+          routes: routes,
           theme: ThemeData(
               textTheme:
                   const TextTheme(bodyLarge: TextStyle(fontFamily: "Sweet")),
@@ -67,21 +73,28 @@ class _SplashScreenState extends State<SplashScreen> {
           // 图片位于页面中心并自适应页面大小
           Center(
             child: Image.asset(
-              'assets/images/logo.png', // 图片路径
+              'assets/images/start2.png', // 图片路径
               fit: BoxFit.contain, // 自适应页面
-              width: MediaQuery.of(context).size.width * 0.5, // 控制图片宽度
+              width: MediaQuery.of(context).size.width * 0.9, // 控制图片宽度
             ),
           ),
           // 底部的圆形加载进度条
           const Positioned(
-            bottom: 30.0, // 距离页面底部的距离
+            bottom: 40.0, // 距离页面底部的距离
             left: 0,
             right: 0,
             child: Center(
-              child: CircularProgressIndicator(
-                strokeWidth: 5.0,
+                // child: CircularProgressIndicator(
+                //   strokeWidth: 5.0,
+                // ),
+                child: Text(
+              'Miwomi',
+              style: TextStyle(
+                color: Colors.pinkAccent,
+                fontSize: 25,
+                fontFamily: 'logo',
               ),
-            ),
+            )),
           ),
         ],
       ),

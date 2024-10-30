@@ -31,7 +31,8 @@ migrate_working_dir/
 .pub/
 /build/
 /build
-.dart_tool
+android/unityLibrary/build
+
 # Symbolication related
 app.*.symbols
 
